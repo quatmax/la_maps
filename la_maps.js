@@ -1,3 +1,23 @@
+function ToDate(date, time) {
+    if (date == "") {
+        return undefined;
+    }
+    var dateTime = new Date(
+        date.substr(6, 4)
+        + "-"
+        + date.substr(3, 2)
+        + "-"
+        + date.substr(0, 2)
+        // + "T00:00:00.000+00:00"
+        + "T00:00:00.000"
+    );
+    if (time == "") {
+        return dateTime;
+    }
+    dateTime.setHours(parseInt(time.substr(0, 2)));
+    dateTime.setMinutes(parseInt(time.substr(3, 2)));
+    return dateTime;
+}
 
 class Event {
     constructor(lineData) {
@@ -5,30 +25,33 @@ class Event {
         this.longitude = parseFloat(lineData[1]);
         this.name = lineData[2];
         this.label = lineData[3];
-        this.start = Date.now();
-        this.end = Date.now();
-        this.setupStart = Date.now();
-        this.setupEnd = Date.now();
-        this.demandKBS = "";
-        this.demandSBS = "";
-        this.monumentProtection = "";
-        this.billingKBS = "";
-        this.billingSBS = "";
+        this.start = ToDate(lineData[4], lineData[5]);
+        this.end = ToDate(lineData[6], lineData[7]);
+        // this.setupStart = Date.now();
+        // this.setupEnd = Date.now();
+        // this.demandKBS = "";
+        // this.demandSBS = "";
+        // this.monumentProtection = "";
+        // this.billingKBS = "";
+        // this.billingSBS = "";
+    }
+    isAllDay() {
+        return this.start.getTime() == this.end.getTime();
     }
 };
 class Events {
     constructor() {
-        this.events = [];
+        this.collection = [];
     }
     static load(onFinished) {
         var es = new Events();
         visitSheetData("https://docs.google.com/spreadsheets/d/" + id + "/gviz/tq?tqx=out:csv", function (lineData) {
-            es.events.push(new Event(lineData));
+            es.collection.push(new Event(lineData));
         }, function () { onFinished(es); });
     }
     sortBy(sorter) {
         var sortBy = [];
-        this.events.forEach(function (value) {
+        this.collection.forEach(function (value) {
             sortBy.push(value);
         });
         sortBy.sort(function (a, b) { return sorter(a, b); });
@@ -115,6 +138,7 @@ function visitSheetData(file, visitLine, onFinished) {
 
 let map;
 let marker;
+
 function la_maps() {
     map = new google.maps.Map(document.getElementById("theMap"), {
         center: { lat: 48.0389, lng: 14.4197 },
@@ -125,22 +149,42 @@ function la_maps() {
         return;
     }
     Events.load(function (events) {
-        var select = document.getElementById('selectEvents');
-        select.innerHTML = '';
-        events.events.forEach(function (value, index) {
-            var opt = document.createElement('option');
-            opt.innerHTML = (index + 1) + '. ' + value.name + ' ' + value.label;
-            opt.id = (index + 1).toString();
-            select.appendChild(opt);
-        });
-        select.onchange = function () {
-            e = events.events[ select.selectedIndex ];
-            map.setCenter({ lat: e.latitude, lng: e.longitude });
-            map.setZoom(23);
-            if (marker != undefined) {
-                marker.setMap(null);
+        var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            eventClick: function (info) {
+                var e = events.collection[info.event.id];
+                map.setCenter({ lat: e.latitude, lng: e.longitude });
+                map.setZoom(21);
+                if (marker != undefined) {
+                    marker.setMap(null);
+                }
+                marker = new google.maps.Marker({ position: { lat: e.latitude, lng: e.longitude }, label: e.name, map: map });
             }
-            marker = new google.maps.Marker({ position: { lat: e.latitude, lng: e.longitude }, label: e.name, map: map });
-        };
+        });
+        events.collection.forEach(function (value, index) {
+            if (value.isAllDay()) {
+                calendar.addEvent({
+                    id: index,
+                    title: value.name,
+                    start: value.start,
+                    allDay: true,
+                    color: "#9D5690"
+                });
+            }
+            else {
+                calendar.addEvent({
+                    id: index,
+                    title: value.name,
+                    start: value.start,
+                    end: value.end
+                });
+            }
+        });
+        calendar.render();
     });
 }
