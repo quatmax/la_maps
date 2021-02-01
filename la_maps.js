@@ -151,6 +151,7 @@ function la_maps() {
     Events.load(function (events) {
         var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
             initialView: 'dayGridMonth',
+            initialDate: '2021-06-01',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
