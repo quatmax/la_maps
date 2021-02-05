@@ -164,7 +164,21 @@ function la_maps() {
                 if (marker != undefined) {
                     marker.setMap(null);
                 }
-                marker = new google.maps.Marker({ position: { lat: e.latitude, lng: e.longitude }, label: e.name, map: map });
+                marker = new google.maps.Marker({
+                    position: { lat: e.latitude, lng: e.longitude },
+                    map: map,
+                    icon: {
+                        url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                        labelOrigin: new google.maps.Point(0, 40),
+                        size: new google.maps.Size(32, 32),
+                        anchor: new google.maps.Point(16, 32)
+                    },
+                    label: {
+                        text: e.name,
+                        color: "#C70E20",
+                        fontWeight: "bold"
+                    }
+                });
             }
         });
         events.collection.forEach(function (value, index) {
